@@ -1,13 +1,19 @@
-const path = require('path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const bootstrapEntryPoints = require('./webpack.bootstrap.config.js');
 
-module.exports = {
-  entry: './src/index.js',
+const path = require("path");
+var isProd = process.env.NODE_ENV === 'production'; //true or false
+const bootstrapConfig = isProd ? bootstrapEntryPoints.prod : bootstrapEntryPoints.dev;
+const config = {
+  entry: {
+    app: './src/index.js',
+    bootstrap: bootstrapConfig
+  },
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'index_bundle.js',
-    publicPath: '/'
+    path: path.resolve(__dirname, "dist"),
+    filename: '[name].bundle.js'
   },
   module: {
     rules: [
@@ -23,15 +29,39 @@ module.exports = {
         test: /\.js$/,
         exclude: /node_modules/,
         use: 'babel-loader'
-      }
+      },
+      {
+        test: /\.woff2?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        use: 'url-loader?limit=10000&name=fonts/[name].[ext]',
+      },
+      {
+        test: /\.(png|jpg|gif)(\?[\s\S]+)?$/,
+        use: 'file-loader?name=images/[name].[ext]',
+      },
+      {
+        test: /\.(ttf|eot|svg)(\?[\s\S]+)?$/,
+        use: 'file-loader?name=fonts/[name].[ext]',
+      },
+
+      // Use one of these to serve jQuery for Bootstrap scripts:
+
+      // Bootstrap 3
+      { test: /bootstrap-sass\/assets\/javascripts\//, use: 'imports-loader?jQuery=jquery' }
     ]
   },
   devServer: {
-    historyApiFallback: true,
+    contentBase: path.join(__dirname, "dist"),
+    stats: "errors-only"
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'src/index.html'
+      title: 'React 101 with Petr Tichy aka @ihatetomatoes',
+      hash: true,
+      template: './src/index.html', // Load a custom template (ejs by default see the FAQ for details)
+    }),
+    new webpack.ProvidePlugin({
+      jQuery: 'jquery',
+      $: 'jquery'
     }),
     new ExtractTextPlugin({
       filename: '[name].css',
@@ -40,3 +70,16 @@ module.exports = {
     })
   ]
 }
+
+if (process.env.NODE_ENV === 'production') {
+  config.plugins.push(
+    new webpack.DefinePlugin({
+      'process.env': {
+        'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
+    new webpack.optimize.UglifyJsPlugin()
+  )
+}
+
+module.exports = config;
