@@ -1,6 +1,7 @@
 import _ from 'lodash'
 
 import { FETCH_POSTS } from "../actions";
+import { CREATE_POST } from "../actions";
 
 export default (state = {}, action) => {
   switch (action.type) {
